@@ -1,0 +1,15 @@
+{
+  "name": "benqi",
+  "version": "1.0.0",
+  "description": "A fork of the benqi protocol",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "hardhat": "^2.10.2"
+  }
+}
