@@ -6,15 +6,10 @@ require('dotenv').config()
 
 async function main() {
   const LinkAddress = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
-  const LINK_ETH_FEED = "0x910e014bBA427e9FCB48B4D314Dc81f840d7b6E3"
+  const LINK_ETH_FEED = "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
 
   const [deployer] = await ethers.getSigners()
   const owner = deployer.address
-
-  
-  const Feed = await ethers.getContractAt(abi, "0x910e014bBA427e9FCB48B4D314Dc81f840d7b6E3");
-
-  console.log("test: ", await Feed.latestAnswer())
 
   // QI token deployment
   const QI = await ethers.getContractFactory("Qi")
@@ -88,7 +83,7 @@ async function main() {
     JumpRateModel.address,
     BigNumber.from("200000000000000000000000000"),
     "Benqi Link",
-    "qiLink",
+    "qiLINK",
     8,
     owner,
     Delegate.address,
@@ -109,21 +104,23 @@ async function main() {
   await QiLink._setProtocolSeizeShare(BigNumber.from("30000000000000000"))
   await QiLink._setReserveFactor(BigNumber.from("200000000000000000"))
   
-  await BenqiChainLinkOracle.setFeed("qiLink", LINK_ETH_FEED)
+  await BenqiChainLinkOracle.setFeed("LINK", LINK_ETH_FEED)
+  await BenqiChainLinkOracle.setFeed("qiAVAX", LINK_ETH_FEED)
   await Comptroller._setPriceOracle(BenqiChainLinkOracle.address)
   
   await Comptroller._supportMarket(QiLink.address)
   await Comptroller._supportMarket(QiAvax.address)
   
   
-  // await Comptroller._setCollateralFactor(QiAvax.address, BigNumber.from("400000000000000000"), {gasLimit: 3e7})
+  await Comptroller._setCollateralFactor(QiAvax.address, BigNumber.from("400000000000000000"), {gasLimit: 3e7})
   await Comptroller._setCollateralFactor(QiLink.address, BigNumber.from("500000000000000000"), {gasLimit: 3e7})
   
-  // await Comptroller._setCloseFactor(BigNumber.from("500000000000000000"))
-  // await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
+  await Comptroller._setCloseFactor(BigNumber.from("500000000000000000"))
+  await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
 
-  // await Comptroller.enterMarkets([QiAvax.address, QiLink.address])
+  await Comptroller.enterMarkets([QiAvax.address, QiLink.address])
 
+  
 }
 
 // We recommend this pattern to be able to use async/await everywhere

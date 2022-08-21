@@ -18,7 +18,6 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: true,
       forking: {
         url: process.env.ETH_MAINFORK || "",
-        blockNumber: 12136584,
       }
     }
    }

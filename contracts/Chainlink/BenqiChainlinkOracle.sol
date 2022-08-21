@@ -1,7 +1,5 @@
 pragma solidity 0.5.17;
 
-import "hardhat/console.sol";
-
 import "../PriceOracle.sol";
 import "../QiErc20.sol";
 import "../EIP20Interface.sol";
@@ -27,7 +25,6 @@ contract BenqiChainlinkOracle is PriceOracle {
         if (compareStrings(symbol, "qiAVAX")) {
             return getChainlinkPrice(getFeed(symbol));
         } else {
-            console.log(symbol);
             return getPrice(qiToken);
         }
     }
@@ -52,7 +49,6 @@ contract BenqiChainlinkOracle is PriceOracle {
 
     function getChainlinkPrice(AggregatorV2V3Interface feed) internal view returns (uint) {
         // Chainlink USD-denominated feeds store answers at 8 decimals
-        console.log("hellooo");
         uint decimalDelta = uint(18).sub(feed.decimals());
         // Ensure that we don't multiply the result by 0
         if (decimalDelta > 0) {
