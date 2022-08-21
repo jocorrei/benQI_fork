@@ -1,5 +1,8 @@
+import * as dotenv from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+
+dotenv.config();
 
 const config: HardhatUserConfig = {
    solidity: {
@@ -12,8 +15,10 @@ const config: HardhatUserConfig = {
     hardhat: {
       gasPrice: 875000000, 
       gas: 100000000000,
-      chainId: 1337,
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
+      forking: {
+        url: process.env.ETH_MAINFORK || ""
+      }
     }
    }
 };
