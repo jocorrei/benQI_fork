@@ -1,14 +1,20 @@
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
+import abi from "../contracts/abi/priceFeed.json";
+
 require('dotenv').config()
 
 async function main() {
-
   const LinkAddress = "0x514910771AF9Ca656af840dff83E8264EcF986CA";
-  const LINK_ETH_FEED = "0x58921Ac140522867bf50b9E009599Da0CA4A2379"
+  const LINK_ETH_FEED = "0x910e014bBA427e9FCB48B4D314Dc81f840d7b6E3"
 
   const [deployer] = await ethers.getSigners()
   const owner = deployer.address
+
+  
+  const Feed = await ethers.getContractAt(abi, "0x910e014bBA427e9FCB48B4D314Dc81f840d7b6E3");
+
+  console.log("test: ", await Feed.latestAnswer())
 
   // QI token deployment
   const QI = await ethers.getContractFactory("Qi")
@@ -108,13 +114,10 @@ async function main() {
   
   await Comptroller._supportMarket(QiLink.address)
   await Comptroller._supportMarket(QiAvax.address)
-
-  console.log("testing oracle in the comptroller", await Comptroller.oracle());
-  console.log("testing feed: ", await BenqiChainLinkOracle.getUnderlyingPrice(QiLink.address))
   
   
   // await Comptroller._setCollateralFactor(QiAvax.address, BigNumber.from("400000000000000000"), {gasLimit: 3e7})
-  // await Comptroller._setCollateralFactor(QiLink.address, BigNumber.from("500000000000000000"), {gasLimit: 3e7})
+  await Comptroller._setCollateralFactor(QiLink.address, BigNumber.from("500000000000000000"), {gasLimit: 3e7})
   
   // await Comptroller._setCloseFactor(BigNumber.from("500000000000000000"))
   // await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
