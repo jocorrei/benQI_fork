@@ -1,5 +1,7 @@
 pragma solidity 0.5.17;
 
+import "hardhat/console.sol";
+
 import "../PriceOracle.sol";
 import "../QiErc20.sol";
 import "../EIP20Interface.sol";

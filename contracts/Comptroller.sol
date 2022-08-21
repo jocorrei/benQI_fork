@@ -1,5 +1,7 @@
 pragma solidity 0.5.17;
 
+import "hardhat/console.sol";
+
 import "./QiToken.sol";
 import "./ErrorReporter.sol";
 import "./PriceOracle.sol";
@@ -865,6 +867,7 @@ contract Comptroller is ComptrollerVXStorage, ComptrollerInterface, ComptrollerE
         }
 
         // If collateral factor != 0, fail if price == 0
+        console.log(newCollateralFactorMantissa != 0);
         if (newCollateralFactorMantissa != 0 && oracle.getUnderlyingPrice(qiToken) == 0) {
             return fail(Error.PRICE_ERROR, FailureInfo.SET_COLLATERAL_FACTOR_WITHOUT_PRICE);
         }
