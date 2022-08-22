@@ -27,19 +27,21 @@ async function main() {
   const Unitroller = await UNI.deploy()
   await Unitroller.deployed();
   console.log("Unitroller deployed at: ", Unitroller.address);
-  
 
-  // Comptroller deployment 
+  // Comptroller deployment
   const COMP = await ethers.getContractFactory("Comptroller")
   const Comptroller = await COMP.deploy();
   await Comptroller.deployed();
   console.log("Comptroller deployed at: ", Comptroller.address);
   
 
+  // Notify Unitroller of new pending implementation
   await Unitroller._setPendingImplementation(Comptroller.address)
   
+  // Comptroller accept's to be Unitroller implementation
   await Comptroller._become(Unitroller.address)
 
+  // Set the Qi token for the new Comptroller
   await Comptroller.setQiAddress(Qi.address)
 
   // Delegate deployment
@@ -59,7 +61,6 @@ async function main() {
   );
   await JumpRateModel.deployed()
   console.log("JumpRateModel deployed at: ", JumpRateModel.address);
-  
 
   // Deployment of the QiAvax token
   const QIAVAX = await ethers.getContractFactory("QiAvax")
@@ -75,6 +76,9 @@ async function main() {
   await QiAvax.deployed()
   console.log("QiAvax deployed at: ", QiAvax.address);
 
+  
+  // The Delegator is the contract that creates new QI tokens.
+  // On this script we are only creating one Qi (QiLink)
   const DELEGATOR = await ethers.getContractFactory("QiErc20Delegator")
   const QiLink = await DELEGATOR.deploy(
     LinkAddress,
