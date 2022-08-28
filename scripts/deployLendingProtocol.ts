@@ -13,6 +13,8 @@ import {
   assetBalance,
 } from "./utils";
 
+const testAccount = "0xbb546a2Da90bc049C5752E420836ACE1D087A470"
+
 /*
 *   This deploy script is set to deploy BenQI's lending protocal on the Avalanche network.
 *   It should work for every EVM compatible network after some changes on the contracts deployment parameters and the contracts itself.
@@ -24,11 +26,13 @@ import {
 
 async function main() {
 
-  // This is the LINK token on Avalanche Mainnet
+  // This is the LINK token address on Avalanche Mainnet
   const LinkAddress = "0x5947BB275c521040051D82396192181b413227A3";
 
-  // This is the Chainlink Oracle smart contract Avalanche Mainnet LINK/USD
+  // Chainlink Oracle smart contract Avalanche Mainnet LINK/USD
   const LINK_FEED = "0x49ccd9ca821efeab2b98c60dc60f518e765ede9a";
+  // Chainlink Oracle smart contract Avalanche Mainnet AVAX/USD
+  const AVAX_FEED = "0x0a77230d17318075983913bc2145db16c7366156"
 
   // Get address to be the deployer
   const [deployer] = await ethers.getSigners()
@@ -77,7 +81,7 @@ async function main() {
   await Delegate.deployed();
   console.log("Delegate deployed at: ", Delegate.address);
 
-  // Interest Rate Model Deployement (actual implementation on BenQi is the JumpRateModel)
+  // Interest Rate Model Deployment (actual implementation on BenQi is the JumpRateModel)
   const RATE = await ethers.getContractFactory("JumpRateModel")
   const JumpRateModel = await RATE.deploy(
     BigNumber.from("20000000000000000"),
@@ -139,8 +143,16 @@ async function main() {
   await QiLink._setProtocolSeizeShare(BigNumber.from("30000000000000000"))
   await QiLink._setReserveFactor(BigNumber.from("200000000000000000"))
   
+  // Set which chainLink feed Benqi's oracle should look for each token. args: (underlying token symbol, chainlink feed address)
   await BenqiChainLinkOracle.setFeed("LINK.e", LINK_FEED)
-  await BenqiChainLinkOracle.setFeed("qiAVAX", LINK_FEED)
+
+  /* 
+  * Since AVAX is the native token of Avalance Mainnet, the symbol argument is qiAvax.
+  * This parameter is hardcoded in the BenqiChainLinkOracle.sol contract. To be used in another 
+  * EVM compatible network, the code on line 25 of the contract should be update. (ex: qiAvax -> qiETH)
+  */
+  await BenqiChainLinkOracle.setFeed("qiAVAX", AVAX_FEED)
+  
   await Comptroller._setPriceOracle(BenqiChainLinkOracle.address)
   
   await Comptroller._supportMarket(QiLink.address)
@@ -157,6 +169,35 @@ async function main() {
   await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
 
   /* Here the Lending protocol is deployed. The next transactions are on the user prespective */
+
+  // Impersonate Treasury
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [testAccount],
+});
+
+// Grant more gas to account 
+await hre.network.provider.send("hardhat_setBalance", [
+  testAccount,
+    "0xfffffffffffffffffffffffffffffffffffffffffffff"
+]);
+
+// Get a account with Avax an Link balance
+const joe = await ethers.getSigner(testAccount);
+// Get Link.e contract Abi
+const LinkToken = await ethers.getContractAt("BridgeToken", LinkAddress)
+// Aprove Link.e spending
+await LinkToken.connect(joe).approve(QiLink.address, ethers.constants.MaxUint256)
+
+// Joe Supplying Link.e for qiLink
+await QiLink.connect(joe).mint(1000000000000)
+const qiLinkBalance = await QiLink.balanceOf(joe.address)
+console.log("Joe's qiLink balance: ", qiLinkBalance);
+
+// Joe Supplying Avax for qiAvax
+await QiAvax.connect(joe).mint({ value: 2000000000 })
+const qiAvaxBalance = await QiAvax.balanceOf(joe.address)
+console.log("Joe's qiAvaxBalance: ", qiAvaxBalance)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
