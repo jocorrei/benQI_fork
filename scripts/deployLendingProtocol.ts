@@ -1,32 +1,24 @@
-import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
-import hre = require("hardhat")
+import hre = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 
 import {
-  balance,
-  parseToken,
   days,
-  address,
-  years,
   timeTravel,
-  formatToken,
-  assetBalance,
 } from "./utils";
 
 const testAccount = "0xbb546a2Da90bc049C5752E420836ACE1D087A470"
 
 /*
-*   This deploy script is set to deploy BenQI's lending protocal on the Avalanche network.
-*   It should work for every EVM compatible network after some changes on the contracts deployment parameters and the contracts itself.
-*   Considerations: For every QiToken the deployer will need to input the underlying address
-*   and the ChainLink oracle smart contract for the desired pair. This script is only deploying the
-*   QiToken (Governance Token from BenqiFinace), QiLink Token and QiAvax. These tokens can be deployed 
-*   in any EVM just changing the parameters and deploying the Delegator Contract.
+*   This deployment script is set to deploy BenQI's lending and staking protocols on the Avalanche network.
+*   It should work for every EVM compatible network after some small changes on the contracts deployment parameters and the contracts itself.
+*   Considerations: This script is only deploying the QiToken (Governance Token from BenqiFinace), QiLink Token and QiAvax.
+*   These and other tokens can be deployed in any EVM compatible network after some changes on tehe parameters when being deployed with the Delegator.
 */
 
 async function main() {
 
-  // This is the LINK token address on Avalanche Mainnet
+  // This is the LINK token address on the Avalanche Mainnet
   const LinkAddress = "0x5947BB275c521040051D82396192181b413227A3";
 
   // Chainlink Oracle smart contract Avalanche Mainnet LINK/USD
@@ -46,7 +38,7 @@ async function main() {
 
   /* 
   * BenqiChainlinkOracle deployment 
-  * (this is deployed once. It's a proxy smart contract that fetch information from the Chainlink Oracle Smart Contracts)
+  * (this is deployed once. It's a proxy smart contract that fetch information from the Chainlink Oracle smart contracts)
   */
 
   const CHAIN = await ethers.getContractFactory("BenqiChainlinkOracle")
@@ -106,7 +98,7 @@ async function main() {
   await QiAvax.deployed()
   console.log("QiAvax deployed at: ", QiAvax.address);
 
-  // The Delegator is the contract that creates new QI tokens.
+  // The Delegator is the contract that creates new QI tokens and its markets.
   // On this script we are only creating one Qi (QiLink) besides the QiAvax
   const DELEGATOR = await ethers.getContractFactory("QiErc20Delegator")
   const QiLink = await DELEGATOR.deploy(
@@ -125,14 +117,14 @@ async function main() {
   await QiLink.deployed();
   console.log("QiLink deployed at: ", QiLink.address);
 
-  // Maximillion is used to repay an an account's borrow in the qiAvax market
+  // Maximillion is used to repay an account's borrow in the qiAvax market
   const MAXI = await ethers.getContractFactory("Maximillion")
   const Maximillion = await MAXI.deploy(QiAvax.address)
   await Maximillion.deployed();
   console.log("Maximillion deployed at: ", Maximillion.address);
 
   /* 
-  *  These transactions are setting the protocol up. Since in this sript we are only 
+  *  These transactions are setting up the protocol. Since in this script we are only 
   *  deploying two Qi Tokens (QiAvax and QiLink), this script only have 2 of theses transactions for
   *  each token.
   */
@@ -163,41 +155,80 @@ async function main() {
 
   await Comptroller._setRewardSpeed(1, QiAvax.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
   await Comptroller._setRewardSpeed(1, QiLink.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
+
+  // Fund Comptroller with Qi for Rewards
+  await Qi.transfer(Comptroller.address, BigNumber.from("1000000000000000000000000000"))
   
   // Set Comptroller settings
   await Comptroller._setCloseFactor(BigNumber.from("500000000000000000"))
   await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
 
-  /* Here the Lending protocol is deployed. The next transactions are on the user prespective */
+  /*   STAKING PROTOCOL DEPLOYED */
 
+  /*   DEPLOYING STAKING PROTOCOL */
+
+  const STAKEDAVAX = await ethers.getContractFactory("StakedAvax")
+  const sAvax = await upgrades.deployProxy(STAKEDAVAX, [BigNumber.from("3000000000"), BigNumber.from("5000000000")])
+  await sAvax.deployed()
+  console.log("sAvax Token deployed at: ", sAvax.address)
+
+  /* STAKING PROTOCOL DEPLOYED */
+
+  /* USING THE PROTOCOL */
+  
   // Impersonate Treasury
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [testAccount],
-});
+    params: [testAccount],  
+  }); 
 
-// Grant more gas to account 
-await hre.network.provider.send("hardhat_setBalance", [
-  testAccount,
-    "0xfffffffffffffffffffffffffffffffffffffffffffff"
-]);
+  // Grant more gas to account 
+  await hre.network.provider.send("hardhat_setBalance", [
+    testAccount,
+      "0xfffffffffffffffffffffffffffffffffffffffffffff"
+  ]);
 
-// Get a account with Avax an Link balance
-const joe = await ethers.getSigner(testAccount);
-// Get Link.e contract Abi
-const LinkToken = await ethers.getContractAt("BridgeToken", LinkAddress)
-// Aprove Link.e spending
-await LinkToken.connect(joe).approve(QiLink.address, ethers.constants.MaxUint256)
+  // Get an account with Avax and Link balance
+  const joe = await ethers.getSigner(testAccount);
+  // Get Link.e contract Abi
+  const LinkToken = await ethers.getContractAt("BridgeToken", LinkAddress)
+  // Aprove Link.e spending
+  await LinkToken.connect(joe).approve(QiLink.address, ethers.constants.MaxUint256)
 
-// Joe Supplying Link.e for qiLink
-await QiLink.connect(joe).mint(1000000000000)
-const qiLinkBalance = await QiLink.balanceOf(joe.address)
-console.log("Joe's qiLink balance: ", qiLinkBalance);
+  // Joe Supplying Link.e for qiLink
+  await QiLink.connect(joe).mint(BigNumber.from("12732148482588855069877"))
+  let qiLinkBalance = await QiLink.balanceOf(joe.address)
+  console.log("Joe's qiLink balance: ", qiLinkBalance);
 
-// Joe Supplying Avax for qiAvax
-await QiAvax.connect(joe).mint({ value: 2000000000 })
-const qiAvaxBalance = await QiAvax.balanceOf(joe.address)
-console.log("Joe's qiAvaxBalance: ", qiAvaxBalance)
+  // Joe Supplying Avax for qiAvax
+  await QiAvax.connect(joe).mint({ value: 2000000000 })
+  const qiAvaxBalance = await QiAvax.balanceOf(joe.address)
+  console.log("Joe's qiAvaxBalance: ", qiAvaxBalance)
+
+  // Joe set his suplyed tokens to be used as colateral
+  await Comptroller.connect(joe).enterMarkets([QiLink.address, QiAvax.address])
+
+  // Joe uses Qilink to borrow Link.e
+  await QiLink.connect(joe).borrow(BigNumber.from("67763341177112665"))
+  let LinkBalance = await LinkToken.balanceOf(joe.address)
+  console.log("Joe's Link balance after borrow: ", LinkBalance);
+
+  await timeTravel(days(3000))
+
+  // Joe Repay Borrow
+  await QiLink.connect(joe).repayBorrow(BigNumber.from("67763341177112665"))
+  LinkBalance = await LinkToken.balanceOf(joe.address)
+  console.log("Joe's Link balance after repay borrow: ", LinkBalance);
+
+  // Joe Redeem underlying
+  await QiLink.connect(joe).redeemUnderlying(BigNumber.from("12732148482588855069877"))
+  qiLinkBalance = await QiLink.balanceOf(joe.address)
+  console.log("Joe's qiLink balance after withdraw: ", qiLinkBalance);
+
+  // Joe Claim rewards form using Benqi Protocol
+  await Comptroller["claimReward(uint8,address,address[])"](0, joe.address, [QiLink.address, QiAvax.address])
+  const QiRewards = await Qi.balanceOf(joe.address)
+  console.log("Qi earned as rewards", QiRewards)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
