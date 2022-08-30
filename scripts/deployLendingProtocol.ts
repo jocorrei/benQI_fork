@@ -156,6 +156,9 @@ async function main() {
   await Comptroller._setRewardSpeed(1, QiAvax.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
   await Comptroller._setRewardSpeed(1, QiLink.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
 
+  await Comptroller._setRewardSpeed(0, QiAvax.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
+  await Comptroller._setRewardSpeed(0, QiLink.address, BigNumber.from("1821840277777780"), BigNumber.from("1821840277777780"), {gasLimit: 3e7})
+
   // Fund Comptroller with Qi for Rewards
   await Qi.transfer(Comptroller.address, BigNumber.from("1000000000000000000000000000"))
   
