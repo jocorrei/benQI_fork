@@ -166,14 +166,19 @@ async function main() {
   await Comptroller._setCloseFactor(BigNumber.from("500000000000000000"))
   await Comptroller._setLiquidationIncentive(BigNumber.from("1100000000000000000"))
 
-  /*   STAKING PROTOCOL DEPLOYED */
-
   /*   DEPLOYING STAKING PROTOCOL */
 
   const STAKEDAVAX = await ethers.getContractFactory("StakedAvax")
   const sAvax = await upgrades.deployProxy(STAKEDAVAX, [BigNumber.from("3000000000"), BigNumber.from("5000000000")])
   await sAvax.deployed()
   console.log("sAvax Token deployed at: ", sAvax.address)
+
+  // Set basic options for sAvax
+  // CONTINUE HERE
+  // `setCooldownPeriod` : change how long users have to wait after unstake request
+  // `setRedeemPeriod` : change how long is the redeem period 
+  // `setTotalPooledAvaxCap`: change the upper possible limit for pooled AVAX
+  // `setHistoricalExchangeRatesByTimestamp`
 
   /* STAKING PROTOCOL DEPLOYED */
 
@@ -232,6 +237,18 @@ async function main() {
   await Comptroller["claimReward(uint8,address,address[])"](0, joe.address, [QiLink.address, QiAvax.address])
   const QiRewards = await Qi.balanceOf(joe.address)
   console.log("Qi earned as rewards", QiRewards)
+
+  // Joe uses the sAvax
+  // submit with avax in transaction
+
+  // sAvax admin
+  // withdraw
+  // deposit more than withdrawed
+  // Accrue rewards
+
+  // Joe request withdraw
+  // Go forward in time
+  // Redeem avax
 }
 
 // We recommend this pattern to be able to use async/await everywhere
