@@ -1,4 +1,4 @@
-import { BigNumber } from "ethers";
+import { BigNumber, utils } from "ethers";
 import hre = require("hardhat");
 const { ethers, upgrades } = require("hardhat");
 
@@ -173,13 +173,17 @@ async function main() {
   await sAvax.deployed()
   console.log("sAvax Token deployed at: ", sAvax.address)
 
-  // Set basic options for sAvax
-  // CONTINUE HERE
-  // `setCooldownPeriod` : change how long users have to wait after unstake request
-  // `setRedeemPeriod` : change how long is the redeem period 
-  // `setTotalPooledAvaxCap`: change the upper possible limit for pooled AVAX
-  // `setHistoricalExchangeRatesByTimestamp`
+  // Set roles for admin to make all methods available
+  await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_SET_TOTAL_POOLED_AVAX_CAP")), owner)
+  await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_WITHDRAW")), owner)
+  await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_DEPOSIT")), owner)
+  await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_ACCRUE_REWARDS")), owner)
 
+  // Set basic options for sAvax
+  await sAvax.setCooldownPeriod(BigNumber.from("432000"))
+  await sAvax.setRedeemPeriod(BigNumber.from("432000"))
+  await sAvax.setTotalPooledAvaxCap(BigNumber.from("1000000000000000000"))
+  
   /* STAKING PROTOCOL DEPLOYED */
 
   /* USING THE PROTOCOL */
@@ -238,17 +242,28 @@ async function main() {
   const QiRewards = await Qi.balanceOf(joe.address)
   console.log("Qi earned as rewards", QiRewards)
 
+  const depositSAvax = 2000000000
   // Joe uses the sAvax
-  // submit with avax in transaction
+  await sAvax.connect(joe).submit({ value: depositSAvax })
+  console.log("Joe sAvax balance: ", await sAvax.balanceOf(joe.address))
 
   // sAvax admin
-  // withdraw
-  // deposit more than withdrawed
-  // Accrue rewards
+  await sAvax.withdraw(depositSAvax)
+  await sAvax.deposit({ value: depositSAvax * 2 })
+  await sAvax.accrueRewards(depositSAvax)
+  console.log("Admin accrued more rewards.")
+  const avaxRewards = await sAvax.getPooledAvaxByShares(depositSAvax)
+  console.log("Now Joe deposit is worth: ", avaxRewards, " AVAX")
 
   // Joe request withdraw
-  // Go forward in time
+  await sAvax.connect(joe).requestUnlock(depositSAvax)
+  await timeTravel(days(6))
+  
   // Redeem avax
+  const joeBalanceBefore = await ethers.provider.getBalance(joe.address)
+  await sAvax.connect(joe)["redeem()"]()
+  const joeBalanceAfter = await ethers.provider.getBalance(joe.address)
+  console.log("Joe earned: ", joeBalanceAfter.sub(joeBalanceBefore))
 }
 
 // We recommend this pattern to be able to use async/await everywhere
