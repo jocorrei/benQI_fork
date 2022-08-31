@@ -174,6 +174,7 @@ async function main() {
   console.log("sAvax Token deployed at: ", sAvax.address)
 
   // Set roles for admin to make all methods available
+  // SHOULD SET IT PROPERLY WHEN DEPLOYING THE CONTRACT ON REAL NETWORK
   await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_SET_TOTAL_POOLED_AVAX_CAP")), owner)
   await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_WITHDRAW")), owner)
   await sAvax.grantRole(utils.keccak256(utils.toUtf8Bytes("ROLE_DEPOSIT")), owner)
