@@ -1,13 +1,16 @@
-# Sample Hardhat Project
+# Benqi's Protocol deployment script
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+This script deploys Benqi's Lending and Staking Protocols on a local network.
 
-Try running some of the following tasks:
+To run the script clone the repo and run:
 
 ```shell
-npx hardhat help
-npx hardhat test
-GAS_REPORT=true npx hardhat test
+npm install
 npx hardhat node
-npx hardhat run scripts/deploy.ts
+```
+
+On another terminal run:
+
+```shell
+npx hardhat run scripts/deployProtocol.ts --network localhost
 ```
